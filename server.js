@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3001;
 
 (async () => {
   await database.connect();
-  await database.sync();
+  await database.sync({ alter: true });
 
   app.listen(PORT, () => {
     console.log(`🚀 User Service running on port ${PORT}`);
@@ -15,9 +15,9 @@ const PORT = process.env.PORT || 3001;
 })();
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception thrown:', error);
+  console.error('Uncaught Exception thrown:', error);
 });

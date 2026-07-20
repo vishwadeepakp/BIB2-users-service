@@ -41,6 +41,11 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
   },
 
+  paymentStatus: {
+    type: DataTypes.STRING,
+    defaultValue: "pending",
+  }
+
 
 });
 
