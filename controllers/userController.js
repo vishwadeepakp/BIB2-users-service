@@ -11,6 +11,17 @@ exports.create = async (req, res, next) => {
   }
 };
 
+exports.sendOtp = async (req, res, next) => {
+  console.log("req.body", req.body)
+  try {
+    const otp = await service.sendOtp(req.body.phone);
+
+    res.status(200).json({ data: otp, status: true });
+  } catch (err) {
+    next(err)
+  }
+};
+
 exports.findAll = async (req, res) => {
   const users = await service.getUsers();
   res.json(users);

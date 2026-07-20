@@ -13,4 +13,6 @@ router.put("/:id", controller.update);
 
 router.delete("/:id", controller.remove);
 
+router.post("/send-otp", controller.sendOtp);
+
 module.exports = router;
