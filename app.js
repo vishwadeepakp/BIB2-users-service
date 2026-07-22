@@ -3,6 +3,7 @@ const express = require("express");
 const morgan = require("morgan");
 
 const userRoutes = require("./routes/userRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const app = express();
 
@@ -10,7 +11,9 @@ app.use(morgan("dev"));
 
 app.use(express.json());
 
-app.use("/", userRoutes);
+app.use("/users", userRoutes);
+app.use("/ai", aiRoutes);
+
 
 app.use((err, req, res, next)=>{
     console.error("Error in User Service:", err);
