@@ -4,12 +4,14 @@ const morgan = require("morgan");
 
 const userRoutes = require("./routes/userRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
 app.use(morgan("dev"));
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/users", userRoutes);
 app.use("/ai", aiRoutes);

@@ -15,4 +15,8 @@ router.delete("/:id", controller.remove);
 
 router.post("/send-otp", controller.sendOtp);
 
+router.post("/verify-otp", controller.verifyOtp);
+
+router.post("/refresh-token", controller.refreshTokens);
+
 module.exports = router;
