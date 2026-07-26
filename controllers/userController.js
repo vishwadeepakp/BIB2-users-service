@@ -26,11 +26,12 @@ exports.sendOtp = async (req, res, next) => {
 exports.verifyOtp = async (req, res, next) => {
   try {
     const data = await service.verifyOtp(req.body.phone, req.body.otp);
+    const isDev = process.env.isDev
     // Access Token Cookie
     res.cookie('accessToken', data.user.accessToken, {
       httpOnly: true, // JS से एक्सेस ब्लॉक
-      secure: false,
-      sameSite: 'lax',
+      secure: !isDev,
+      sameSite: !isDev ? 'none' : 'lax',
       path: '/',
       maxAge: 15 * 60 * 1000, // 15 मिनट
     });
@@ -38,8 +39,8 @@ exports.verifyOtp = async (req, res, next) => {
     // Refresh Token Cookie
     res.cookie('refreshToken', data.user.refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: !isDev,
+      sameSite: !isDev ? 'none' : 'lax',
       path: '/', // या सुरक्षा के लिए '/api/auth/refresh'
       maxAge: 365 * 24 * 60 * 60 * 1000, // 365 दिन
     });
@@ -55,10 +56,12 @@ exports.refreshTokens = async (req, res, next) => {
     const refreshToken = req.cookies?.refreshToken || req.headers.authorization?.split(' ')[1];
     const data = await service.refreshTokens(refreshToken);
     console.log("data from refreshTokens 22", data)
+    const isDev = process.env.isDev
+
     res.cookie('accessToken', data.accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: !isDev,
+      sameSite: !isDev ? 'none' : 'lax',
       path: '/',
       maxAge: 15 * 60 * 1000, // 15 Minutes
     });
