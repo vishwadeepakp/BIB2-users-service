@@ -18,6 +18,10 @@ app.use(async (req, res, next) => {
   }
 });
 
+app.get("/", (req, res) => {
+    res.send("User Service is alive")
+});
+
 module.exports = app;
 
 // 2. Local Machine के लिए Server listening + DB Connect
