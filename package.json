@@ -20,7 +20,7 @@
     "jsonwebtoken": "^9.0.3",
     "kafkajs": "^2.2.4",
     "morgan": "^1.11.0",
-    "mysql2": "^3.23.0",
+    "mysql2": "^3.23.2",
     "sequelize": "^6.37.8"
   },
   "devDependencies": {
