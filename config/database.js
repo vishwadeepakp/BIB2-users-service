@@ -17,6 +17,7 @@ class Database {
         host: process.env.DB_HOST,
         port: Number(process.env.DB_PORT),
         dialect: "mysql",
+        dialectModule: require("mysql2"),
         logging: false,
 
         pool: {
