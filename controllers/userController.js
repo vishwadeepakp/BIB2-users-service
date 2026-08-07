@@ -15,7 +15,7 @@ exports.create = async (req, res, next) => {
 exports.sendOtp = async (req, res, next) => {
   console.log("req.body", req.body)
   try {
-    const otp = await service.sendOtp(req.body.phone);
+    const otp = await service.sendOtp(req.body);
 
     res.status(200).json({ data: otp, status: true });
   } catch (err) {
@@ -25,9 +25,14 @@ exports.sendOtp = async (req, res, next) => {
 
 exports.verifyOtp = async (req, res, next) => {
   try {
-    const data = await service.verifyOtp(req.body.phone, req.body.otp);
+    const isRegistration = req.body.isRegistration || false;
+    const data = await service.verifyOtp(req.body.phone, req.body.otp, isRegistration);
     const isDev = process.env.isDev
     // Access Token Cookie
+
+    if (isRegistration) {
+      return res.status(200).json({ data, status: true });
+    }
     res.cookie('accessToken', data.user.accessToken, {
       httpOnly: true, // JS से एक्सेस ब्लॉक
       secure: !isDev,
@@ -44,6 +49,7 @@ exports.verifyOtp = async (req, res, next) => {
       path: '/', // या सुरक्षा के लिए '/api/auth/refresh'
       maxAge: 365 * 24 * 60 * 60 * 1000, // 365 दिन
     });
+
 
     res.status(200).json({ data: { id: data.user.id, mobile: data.user.mobile }, status: true });
   } catch (err) {

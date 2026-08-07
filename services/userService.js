@@ -1,66 +1,97 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const RefreshToken = require('../models/RefreshToken');
+const producer = require('../config/kafkaClient');
+
+const otpStore = new Map();
 
 exports.createUser = async (data) => {
-  return await User.create(data);
+  try {
+    const user = await User.create(data);
+    return { success: true, message: 'User created successfully', data: user };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw new Error(error?.message || 'Failed to create user');
+  }
 };
 
-exports.sendOtp = async (mobile) => {
+exports.sendOtp = async (payload) => {
   try {
-    const userData = await User.findOne({ where: { mobile: mobile } });
-    console.log("userData", userData)
-    if (!userData) {
-      throw new Error("User not found");
+    const mobile = payload?.mobile || payload?.phone;
+    const email = payload?.email;
+    const isRegistration = Boolean(payload?.isRegistration);
+
+    if (!isRegistration) {
+      const userData = await User.findOne({ where: { mobile: mobile } });
+      console.log("userData", userData);
+      if (!userData) {
+        throw new Error("User not found");
+      }
     }
-    const otp = Math.floor(100000 + Math.random() * 900000); // Generate a random 6-digit OTP
-    const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-      method: "POST",
-      headers: {
-        "Authorization": process.env.OTP_KEY,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        route: "q",
-        language: 'english',
-        number: mobile,
-        message: `Your OTP is ${otp}. Please do not share it with anyone.`
-      })
-    });
 
-    console.log("response", response)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 मिनट
+    const otpKey = mobile?.toString();
 
-    const data = await response.json();
+    otpStore.set(otpKey, { otp, expiresAt });
 
-    if (!response.ok) {
-      throw new Error(data.message || "error in calling fast2sms API")
-    }
-    return data
+    console.log("otpStore", otpStore)
+
+    // await triggerOtpEvent('EMAIL', email, otp);
+
+    return { success: true, message: 'OTP sent successfully' };
+
+    // const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+    //   method: "POST",
+    //   headers: {
+    //     "Authorization": process.env.OTP_KEY,
+    //     "Content-Type": "application/json"
+    //   },
+    //   body: JSON.stringify({
+    //     route: "q",
+    //     language: 'english',
+    //     number: mobile,
+    //     message: `Your OTP is ${otp}. Please do not share it with anyone.`
+    //   })
+    // });
+
+    // const data = await response.json();
+
+    // if (!response.ok) {
+    //   throw new Error(data.message || "error in calling fast2sms API")
+    // }
+    // return data
 
   } catch (error) {
     throw new Error(error.message || "error in calling fast2sms API")
   }
 };
 
-exports.verifyOtp = async (mobile, otp) => {
+exports.verifyOtp = async (mobile, otp, isRegistration) => {
   try {
-    if (!mobile || !otp) {
+    const normalizedMobile = mobile?.toString();
+    if (!normalizedMobile || !otp) {
       throw new Error("Mobile number and OTP are required");
     }
-    if (otp !== "123456") { // Replace with actual OTP verification logic
-      throw new Error("Invalid OTP");
+
+    const savedOtp = otpStore.get(normalizedMobile);
+    console.log("savedOtp", savedOtp, "otp", otp, "mobile", normalizedMobile, otpStore)
+    if (!savedOtp || savedOtp.otp !== otp || savedOtp.expiresAt < Date.now()) {
+      throw new Error("Invalid or expired OTP");
     }
 
-    const userData = await User.findOne({ where: { mobile: mobile } });
-    console.log("userData", userData)
-    if (!userData) {
-      throw new Error("User not found");
+    otpStore.delete(normalizedMobile);
+    if (!isRegistration) {
+      const userData = await User.findOne({ where: { mobile: normalizedMobile } });
+      console.log("userData", userData);
+      if (!userData) {
+        throw new Error("User not found");
+      }
+      const data = await generateAndStoreTokens(userData);
+      return data;
+    } else {
+      return { success: true, message: 'OTP verified successfully' };
     }
-
-    const data = await generateAndStoreTokens(userData);
-
-
-    return data; // Placeholder implementation
 
   } catch (error) {
     throw new Error(`error :: ${error.message}` || "Error in verifying OTP");
@@ -81,6 +112,34 @@ exports.refreshTokens = async (refreshToken) => {
     throw new Error(`error :: ${error.message}` || "Error in refreshing tokens");
   }
 }
+
+const triggerOtpEvent = async (channel, recipient, otp) => {
+  try {
+    const payload = {
+      channel: channel,     // 'EMAIL' या 'SMS'
+      recipient: recipient, // 'user@gmail.com' या '+919876543210'
+      otp: otp,
+      timestamp: new Date().toISOString()
+    };
+
+    // Kafka के 'send-otp' टॉपिक में मैसेज पुश करें
+    await producer.send({
+      topic: 'send-otp',
+      messages: [
+        {
+          key: recipient, // key देने से एक ही यूज़र के मैसेज सीरियल ऑर्डर में जाते हैं
+          value: JSON.stringify(payload)
+        }
+      ]
+    });
+
+    console.log(`✅ [Kafka Event Sent] OTP Event queued for ${recipient} via ${channel}`);
+
+  } catch (error) {
+    console.error("❌ Failed to push event to Kafka:", error.message);
+    throw error;
+  }
+};
 
 
 exports.getUsers = async () => {
