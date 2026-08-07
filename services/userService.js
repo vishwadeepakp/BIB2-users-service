@@ -37,7 +37,7 @@ exports.sendOtp = async (payload) => {
 
     console.log("otpStore", otpStore)
 
-    // await triggerOtpEvent('EMAIL', email, otp);
+    await triggerOtpEvent('EMAIL', email, otp);
 
     return { success: true, message: 'OTP sent successfully' };
 
