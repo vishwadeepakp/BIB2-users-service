@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const RefreshToken = require('../models/RefreshToken');
-const producer = require('../config/kafkaClient');
+const { sendMessage } = require('../config/kafkaClient');
 
 const otpStore = new Map();
 
@@ -123,14 +123,9 @@ const triggerOtpEvent = async (channel, recipient, otp) => {
     };
 
     // Kafka के 'send-otp' टॉपिक में मैसेज पुश करें
-    await producer.send({
-      topic: 'send-otp',
-      messages: [
-        {
-          key: recipient, // key देने से एक ही यूज़र के मैसेज सीरियल ऑर्डर में जाते हैं
-          value: JSON.stringify(payload)
-        }
-      ]
+    await sendMessage('send-otp', {
+      key: recipient,
+      value: JSON.stringify(payload),
     });
 
     console.log(`✅ [Kafka Event Sent] OTP Event queued for ${recipient} via ${channel}`);
