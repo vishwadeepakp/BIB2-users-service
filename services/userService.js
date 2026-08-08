@@ -18,7 +18,7 @@ exports.createUser = async (data) => {
 exports.sendOtp = async (payload) => {
   try {
     const mobile = payload?.mobile || payload?.phone;
-    const email = payload?.email;
+    let email = payload?.email;
     const isRegistration = Boolean(payload?.isRegistration);
 
     if (!isRegistration) {
@@ -27,6 +27,7 @@ exports.sendOtp = async (payload) => {
       if (!userData) {
         throw new Error("User not found");
       }
+      email = email || userData?.email;
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -35,9 +36,9 @@ exports.sendOtp = async (payload) => {
 
     otpStore.set(otpKey, { otp, expiresAt });
 
-    console.log("otpStore", otpStore)
+    console.log("otpStore", otpStore, email)
 
-    await triggerOtpEvent('EMAIL', email, otp);
+    // await triggerOtpEvent('EMAIL', email, otp);
 
     return { success: true, message: 'OTP sent successfully' };
 
