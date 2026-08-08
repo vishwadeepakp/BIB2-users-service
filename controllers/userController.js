@@ -118,3 +118,10 @@ exports.remove = async (req, res) => {
     message: "Deleted successfully",
   });
 };
+
+exports.logout = async (req, res) => {
+  console.log("Logging out user");
+  res.clearCookie('accessToken');
+  res.clearCookie('refreshToken');
+  res.status(200).json({ message: 'Logged out successfully' });
+};

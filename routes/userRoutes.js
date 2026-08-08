@@ -5,13 +5,15 @@ const router = express.Router();
 
 router.post("/register", controller.create);
 
-router.get("/", controller.findAll);
+router.get("/logout", controller.logout);
 
-router.get("/:id", controller.findOne);
+// router.get("/", controller.findAll);
 
-router.put("/:id", controller.update);
+// router.get("/:id", controller.findOne);
 
-router.delete("/:id", controller.remove);
+// router.put("/:id", controller.update);
+
+// router.delete("/:id", controller.remove);
 
 router.post("/send-otp", controller.sendOtp);
 
