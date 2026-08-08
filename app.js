@@ -4,6 +4,7 @@ const morgan = require("morgan");
 
 const userRoutes = require("./routes/userRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
 const cookieParser = require('cookie-parser');
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(cookieParser());
 
 app.use("/users", userRoutes);
 app.use("/ai", aiRoutes);
+app.use("/ai/inventory", inventoryRoutes);
 
 
 app.use((err, req, res, next)=>{
