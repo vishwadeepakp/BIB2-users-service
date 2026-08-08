@@ -1,46 +1,31 @@
 const { Kafka } = require('kafkajs');
 
 let producer = null;
-let connectingPromise = null;
 
 const createKafkaClient = () => new Kafka({
   clientId: 'user-auth-service',
   brokers: [process.env.KAFKA_BROKER],
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: { rejectUnauthorized: false },
   sasl: {
     mechanism: 'plain',
     username: process.env.KAFKA_USERNAME,
     password: process.env.KAFKA_PASSWORD,
   },
+  // ⚠️ Vercel timeout से पहले फ़ैल होने के लिए retry timeouts छोटे रखो:
+  connectionTimeout: 3000,
+  requestTimeout: 4000,
+  retry: {
+    retries: 2 // Serverless में लंबे retries मत रखो
+  }
 });
 
 const getProducer = async () => {
   if (!producer) {
-    producer = createKafkaClient().producer();
+    const kafka = createKafkaClient();
+    producer = kafka.producer();
+    await producer.connect();
+    console.log('⚡ Kafka Producer Connected (New Instance)');
   }
-
-  if (!connectingPromise) {
-    connectingPromise = (async () => {
-      try {
-        await producer.connect();
-        console.log('🚀 Kafka Producer Connected!');
-      } catch (error) {
-        console.error('❌ Kafka producer connect failed:', error.message);
-        producer = null;
-        throw error;
-      }
-    })();
-  }
-
-  try {
-    await connectingPromise;
-  } catch (error) {
-    connectingPromise = null;
-    throw error;
-  }
-
   return producer;
 };
 
@@ -52,11 +37,17 @@ const sendMessage = async (topic, message) => {
       messages: [message],
     });
   } catch (error) {
-    console.warn('⚠️ Kafka send failed; retrying with a fresh producer...', error.message);
-    producer = null;
-    connectingPromise = null;
-    const activeProducer = await getProducer();
-    return await activeProducer.send({
+    console.warn('⚠️ Kafka Send failed, destroying stale producer & retrying once...', error.message);
+    
+    // 🔴 पुराने मरे हुए instance और सॉकेट को पूरी तरह साफ़ करो
+    if (producer) {
+      try { await producer.disconnect(); } catch (_) {}
+      producer = null;
+    }
+
+    // 🟢 ताज़ा Producer बनाकर 1 बार में ही भेजो
+    const freshProducer = await getProducer();
+    return await freshProducer.send({
       topic,
       messages: [message],
     });
@@ -64,16 +55,14 @@ const sendMessage = async (topic, message) => {
 };
 
 const closeProducer = async () => {
-  if (!producer) return;
-
-  try {
-    await producer.disconnect();
-    console.log('🔌 Kafka Producer Disconnected');
-  } catch (error) {
-    console.error('❌ Kafka producer disconnect failed:', error.message);
-  } finally {
-    producer = null;
-    connectingPromise = null;
+  if (producer) {
+    try {
+      await producer.disconnect();
+      console.log('Kafka Producer Disconnected');
+    } catch (e) {}
+    finally {
+      producer = null;
+    }
   }
 };
 
