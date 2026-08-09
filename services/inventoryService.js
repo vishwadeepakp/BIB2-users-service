@@ -38,11 +38,23 @@ async function getInventoryTableData(userID, query = {}) {
   const where = { userId: userID };
 
   if (search) {
-    where[Op.or] = [
-      { name: { [Op.like]: `%${search}%` } },
-      { category: { [Op.like]: `%${search}%` } },
-      { tags: { [Op.contains]: [search] } },
+    const escapeLikePattern = (value) => value.replace(/[%_\\]/g, '\\$&');
+    const safeSearch = escapeLikePattern(search);
+    const searchPattern = `%${safeSearch}%`;
+    const isPostgres = InventoryLog.sequelize?.getDialect?.() === 'postgres';
+    const likeOperator = isPostgres ? Op.iLike : Op.like;
+    const searchConditions = [
+      { name: { [likeOperator]: searchPattern } },
+      { category: { [likeOperator]: searchPattern } },
     ];
+
+    if (isPostgres) {
+      searchConditions.push({ tags: { [Op.contains]: [search] } });
+    } else {
+      searchConditions.push({ tags: { [likeOperator]: searchPattern } });
+    }
+
+    where[Op.or] = searchConditions;
   }
 
   const { rows, count } = await InventoryLog.findAndCountAll({
