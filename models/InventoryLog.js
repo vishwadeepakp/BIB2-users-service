@@ -14,7 +14,7 @@ const InventoryLog = sequelize.define('InventoryLog', {
     allowNull: false,
     field: 'user_id',
   },
-  
+
   // AI Extracted Core Fields
   name: {
     type: DataTypes.STRING(255),
@@ -28,7 +28,7 @@ const InventoryLog = sequelize.define('InventoryLog', {
     type: DataTypes.ENUM('IN', 'OUT'),
     defaultValue: 'IN', // 'IN' = Stock Purchase/Added, 'OUT' = Sale
   },
-  
+
   // Quantities & Packaging
   quantity: {
     type: DataTypes.DECIMAL(10, 3), // Total Quantity (e.g. 4.000)
@@ -48,16 +48,26 @@ const InventoryLog = sequelize.define('InventoryLog', {
     field: 'package_unit', // "packet", "box", "bag", "bottle"
     allowNull: true,
   },
+  supplierName: {
+    type: DataTypes.STRING(50),
+    field: 'supplier_name',
+    allowNull: true,
+  },
   quantityPerPackage: {
     type: DataTypes.DECIMAL(10, 3),
     field: 'quantity_per_package', // e.g., 1.000 (1kg per packet)
     allowNull: true,
   },
-  
+
   // Pricing & Expiry
   sellingPrice: {
     type: DataTypes.DECIMAL(10, 2),
     field: 'selling_price',
+    allowNull: true,
+  },
+  buyingPrice: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'buying_price',
     allowNull: true,
   },
   expiryDate: {
@@ -65,7 +75,7 @@ const InventoryLog = sequelize.define('InventoryLog', {
     field: 'expiry_date',
     allowNull: true,
   },
-  
+
   // AI Generated Tags (JSON Array)
   // Example: ["chini", "sugar", "kirana", "sweet"]
   tags: {

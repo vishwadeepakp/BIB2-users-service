@@ -62,7 +62,7 @@ async function getInventoryTableData(userID, query = {}) {
     order: [['createdAt', 'DESC']],
     limit,
     offset,
-    attributes: ['id', 'name', 'category', 'type', 'quantity', 'unit', 'packageCount', 'packageUnit', 'quantityPerPackage', 'sellingPrice', 'expiryDate', 'tags', 'voiceResponse', 'createdAt'],
+    attributes: ['id', 'name', 'category', 'type', 'quantity', 'unit', 'packageCount', 'packageUnit', 'quantityPerPackage', 'sellingPrice', 'buyingPrice', 'expiryDate', 'tags', 'voiceResponse', 'createdAt'],
   });
 
   console.log("rows", rows)

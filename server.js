@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3001;
 app.use(async (req, res, next) => {
   try {
     await database.connect();
-    // database.sync() केवल जरूरत पड़ने पर रखें
+    // await database.sync({alter: true})
     next();
   } catch (error) {
     console.error("Database Connection Error:", error);

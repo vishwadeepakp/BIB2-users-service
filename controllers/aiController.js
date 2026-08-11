@@ -13,9 +13,10 @@ exports.sendText = async (req, res, next) => {
 };
 
 exports.saveInventoryData = async (req, res, next) => {
-    console.log("req", req.headers['x-user-id']);
-    const userID = req.headers['x-user-id'];
     try {
+        console.log("req", req.headers['x-user-id']);
+        const userID = req.headers['x-user-id'];
+        
         const user = await service.saveInventory([req.body], userID);
 
         res.status(201).json({ data: user, status: true });
