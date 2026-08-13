@@ -68,45 +68,74 @@ OUTPUT JSON SCHEMA (NO MARKDOWN, ONLY VALID JSON):
   return ADD_INVENTORY_PROMPT;
 }
 
-function SEARCH_INVENTORY_PROMPT(text) {
+function SEARCH_INVENTORY_PROMPT(text, userID) {
+  // आज की तारीख और महीना Dynamic निकालो ताकि LLM को पता रहे
+  const today = new Date();
+  const currentDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD (e.g. 2026-08-13)
+  const currentMonthYear = today.toLocaleString('default', { month: 'long', year: 'numeric' }); // e.g. August 2026
 
-  const SEARCH_INVENTORY_PROMPT = `
-You are Aakash AI—MSME Inventory Search Assistant.
-Generate a valid MySQL SELECT query for the 'inventory_logs' table based on user input. Return PURE JSON ONLY.
+ return `
+You are Aakash AI—MSME Inventory Assistant.
+Convert the user's natural language request into a valid MySQL SELECT query for the "inventory_logs" table, and provide a polite Hindi/Hinglish voice response.
 
-=========================
-TABLE SCHEMA: inventory_logs
-=========================
-Columns: user_id(UUID), name(VARCHAR), category(VARCHAR), quantity(DECIMAL), unit(VARCHAR), package_count(INT), package_unit(VARCHAR), quantity_per_package(DECIMAL), buying_price(DECIMAL), selling_price(DECIMAL), supplier_name(VARCHAR), expiry_date(DATE YYYY-MM-DD), tags(JSON Array), created_at(TIMESTAMP), deleted_at(TIMESTAMP)
+========================================
+SYSTEM TIME CONTEXT (CRITICAL FOR DATES):
+- TODAY'S DATE: "${currentDate}" (YYYY-MM-DD)
+- CURRENT MONTH & YEAR: "${currentMonthYear}"
+========================================
 
-=========================
-QUERY RULES
-=========================
-1. Always use '{{USER_ID}}' for user_id filtering.
-2. ALWAYS include "deleted_at IS NULL" condition.
-3. ONLY SELECT queries are allowed (NO INSERT, UPDATE, DELETE, DROP).
-4. Tags/Search: Use JSON_CONTAINS(tags, '"keyword"') OR LOWER(name) LIKE '%keyword%'.
-5. Dates: "kal" -> DATE(created_at) = CURDATE() - INTERVAL 1 DAY, "aaj" -> DATE(created_at) = CURDATE().
-6. VOICE RESPONSE: Natural Hinglish written in DEVANAGARI script (Hindi + English words mix).
-   - Example: "आपकी खरीदी हुई inventory details search की जा रही हैं।"
+TABLE SCHEMA:
+inventory_logs (
+  user_id UUID, 
+  name VARCHAR, 
+  category VARCHAR, 
+  quantity DECIMAL, 
+  unit VARCHAR, 
+  package_count INT, 
+  package_unit VARCHAR, 
+  tags JSON, 
+  created_at TIMESTAMP, 
+  deleted_at TIMESTAMP
+)
+
+QUERY RULES:
+1. MANDATORY FILTERS: 
+   - Always include "user_id = '${userID}'" AND "deleted_at IS NULL".
+   - ONLY SELECT queries are allowed.
+
+2. TIMESTAMP RANGE FILTERING (DO NOT USE DATE() FUNCTION):
+   - "created_at" is a TIMESTAMP column with time. ALWAYS use Range Filters (>= 'YYYY-MM-DD 00:00:00' AND < 'NEXT_DAY 00:00:00') for full index optimization and exact day matching.
+
+3. DATE RANGE EXAMPLES (Use SYSTEM TIME CONTEXT above):
+   - "aaj" -> created_at >= '${currentDate} 00:00:00' AND created_at < DATE_ADD('${currentDate}', INTERVAL 1 DAY)
+   - "kal" -> created_at >= DATE_SUB('${currentDate}', INTERVAL 1 DAY) AND created_at < '${currentDate} 00:00:00'
+   - "parson" -> created_at >= DATE_SUB('${currentDate}', INTERVAL 2 DAY) AND created_at < DATE_SUB('${currentDate}', INTERVAL 1 DAY)
+   - Specific Date (e.g., "7 तारीख" or "7th"): 
+     Example for 7th of current month: created_at >= '${currentDate.substring(0, 8)}07 00:00:00' AND created_at < '${currentDate.substring(0, 8)}08 00:00:00'
+   - "aaj tak" / "total" / "lifetime" / "sab milake": DO NOT ADD ANY DATE FILTER.
+
+4. SEARCH FLEXIBILITY:
+   - Search products using fuzzy matching: LOWER(name) LIKE '%keyword%' OR JSON_CONTAINS(tags, '"keyword"').
+   - NEVER add strict conditions for spoken measurement units like "kilo", "kg", "packet" in the WHERE clause.
 
 USER INPUT:
-"${text}"
+"${text.trim()}"
 
-OUTPUT JSON SCHEMA (NO MARKDOWN, ONLY VALID JSON):
+OUTPUT JSON SCHEMA ONLY (NO MARKDOWN):
 {
   "action_type": "SEARCH_PRODUCT",
   "is_valid": true,
-  "search_query": "{{USER_INPUT}}",
-  "generated_query": "MySQL SELECT query string",
+  "search_query": "${text.trim()}",
+  "generated_query": "SELECT ... FROM inventory_logs WHERE ...",
   "product_details": [],
-  "voice_response": "string"
+  "voice_response": "Polite response in Hindi/Hinglish written in Devanagari script."
 }
-`
-  return SEARCH_INVENTORY_PROMPT
+`;
 }
 
-module.exports = {SEARCH_INVENTORY_PROMPT, ADD_INVENTORY_PROMPT, INTENT_CLASSIFIER_PROMPT}
+
+
+module.exports = { SEARCH_INVENTORY_PROMPT, ADD_INVENTORY_PROMPT, INTENT_CLASSIFIER_PROMPT }
 
 
 

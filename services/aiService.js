@@ -30,15 +30,20 @@ async function parseVoiceText(data, userID) {
 
     const intent = await llmModel(text, INTENT_CLASSIFIER_PROMPT(text));
 
-    console.log(intent, intent)
+    console.log("intent", intent)
 
-    if (intent.intent = 'ADD_INVENTORY') {
+    if (intent.intent == 'ADD_INVENTORY') {
       const addInventoyJSON = await llmModel(text, ADD_INVENTORY_PROMPT(text));
       return addInventoyJSON;
-    } else if (intent.intent = 'SEARCH_INVENTORY_LOGS') {
-      const searchInventoryJSON = await llmModel(text, SEARCH_INVENTORY_PROMPT(text));
+    } else if (intent.intent == 'SEARCH_INVENTORY_LOGS') {
+      const searchInventoryJSON = await llmModel(text, SEARCH_INVENTORY_PROMPT(text, userID));
+      console.log("searchInventoryJSON", searchInventoryJSON);
       const SearchData = await getSearchData(searchInventoryJSON.generated_query, userID);
-      return { data: SearchData, voice_response: resData.voice_response, action_type: "SEARCH_PRODUCT" }
+      return { data: SearchData, voice_response: searchInventoryJSON.voice_response, action_type: "SEARCH_PRODUCT" }
+    } else if (intent.intent == 'XXXXX') {
+      const searchInventoryJSON = await llmModel(text, SEARCH_INVENTORY_PROMPT(text, userID));
+      const SearchData = await getSearchData(searchInventoryJSON.generated_query, userID);
+      return { data: SearchData, voice_response: searchInventoryJSON.voice_response, action_type: "SEARCH_PRODUCT" }
     }
 
     // if (resData.action_type == "SEARCH_PRODUCT") {
