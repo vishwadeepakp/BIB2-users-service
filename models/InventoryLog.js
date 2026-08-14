@@ -53,6 +53,11 @@ const InventoryLog = sequelize.define('InventoryLog', {
     field: 'supplier_name',
     allowNull: true,
   },
+  brand: {
+    type: DataTypes.STRING(50),
+    field: 'brand',
+    allowNull: true,
+  },
   quantityPerPackage: {
     type: DataTypes.DECIMAL(10, 3),
     field: 'quantity_per_package', // e.g., 1.000 (1kg per packet)

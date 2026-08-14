@@ -4,17 +4,18 @@ function INTENT_CLASSIFIER_PROMPT(text) {
         Analyze the user's input and categorize it into EXACTLY ONE intent. Return pure JSON.
 
         INTENTS:
-        1. ADD_INVENTORY: User wants to add stock, purchases, bought items, or new entries into the system.
-        2. SEARCH_INVENTORY_LOGS: User is asking about PAST PURCHASES or purchase history (e.g. "Kal kya khareeda tha?", "Kitne me khareeda?").
-        3. SEARCH_STOCK: User is asking about CURRENT REMAINING STOCK, availability, or item expiry (e.g. "Cheeni kitni bachi hai?", "Kaun sa item expire hone wala hai?").
-        4. GENERAL_QUERY: Greetings, general chit-chat, or questions not related to inventory/stock.
+        1. ADD_INVENTORY: User wants to add stock, purchases, bought items, or new inventory entries into the system (e.g., "50 kg chawal khareeda", "Stock add karo").
+        2. ADD_SALE: User wants to record a sales transaction, billing, or items sold to a customer (e.g., "Ramesh ko 2 kg chini becha", "500 ka bill banao", "10 notebook sell kiya").
+        3. SEARCH_INVENTORY_LOGS: User is asking about PAST PURCHASES or purchase history (e.g., "Kal kya khareeda tha?", "Supplier se kitne me khareeda?").
+        4. SEARCH_STOCK: User is asking about CURRENT REMAINING STOCK, availability, or item expiry (e.g., "Cheeni kitni bachi hai?", "Kaun sa item expire hone wala hai?").
+        5. GENERAL_QUERY: Greetings, general chit-chat, or questions not related to inventory/sales/stock.
 
         USER INPUT:
         "${text.trim()}"
 
         OUTPUT SCHEMA (NO MARKDOWN, RETURN ONLY VALID JSON):
         {
-          "intent": "ADD_INVENTORY" | "SEARCH_INVENTORY_LOGS" | "SEARCH_STOCK" | "GENERAL_QUERY",
+          "intent": "ADD_INVENTORY" | "ADD_SALE" | "SEARCH_INVENTORY_LOGS" | "SEARCH_STOCK" | "GENERAL_QUERY",
           "confidence": number
         }
         `
@@ -49,6 +50,7 @@ OUTPUT JSON SCHEMA (NO MARKDOWN, ONLY VALID JSON):
   "product_details": [
     {
       "name": "string",
+      "brand": "string | null",
       "category": "string",
       "quantity": number,
       "unit": "kg|gm|litre|ml|piece",
@@ -133,9 +135,60 @@ OUTPUT JSON SCHEMA ONLY (NO MARKDOWN):
 `;
 }
 
+function EXTRACT_SALE_PROMPT(text) {
+  const extractSalePrompt = `
+        You are an AI Data Extraction Agent for an MSME Store & Inventory app.
+        Your job is to parse the user's spoken or written sales entry text and extract structured sales data with discounts.
+
+        USER INPUT:
+        "${text.trim()}"
+
+        EXTRACTION RULES:
+        1. "customer_name": Extract customer name if mentioned, otherwise null.
+        2. "customer_phone": Extract phone number if provided, otherwise null.
+        3. "payment_mode": Identify payment method ("cash", "upi", "card", "credit"). Default to "cash".
+        4. "overall_discount": Extract bill-level discount.
+           - "value": Number (e.g. 50 or 10), default to 0.
+           - "type": "percent" or "fixed" (e.g. 5% -> "percent", 50 rs -> "fixed").
+        5. "items": Extract ALL items sold as an array.
+           - "product_name": Item name.
+           - "hsn_code": HSN/SAC code if spoken, otherwise null.
+           - "quantity": Number sold.
+           - "unit": Unit ("kg", "pcs", etc.). Default to "pcs".
+           - "unit_price": Price per unit.
+           - "discount_value": Item-level discount if specified, otherwise 0.
+           - "discount_type": "percent" or "fixed". Default to "percent".
+        6. "notes": Any extra context spoken.
+
+        OUTPUT SCHEMA (NO MARKDOWN, RETURN ONLY PURE JSON):
+        {
+          "customer_name": string | null,
+          "customer_phone": string | null,
+          "payment_mode": "cash" | "upi" | "card" | "credit",
+          "overall_discount": {
+            "value": number,
+            "type": "percent" | "fixed"
+          },
+          "notes": string | null,
+          "items": [
+            {
+              "product_name": string,
+              "hsn_code": string | null,
+              "quantity": number,
+              "unit": string,
+              "unit_price": number | null,
+              "discount_value": number,
+              "discount_type": "percent" | "fixed"
+            }
+          ]
+        }
+        `
+  return extractSalePrompt;
+}
 
 
-module.exports = { SEARCH_INVENTORY_PROMPT, ADD_INVENTORY_PROMPT, INTENT_CLASSIFIER_PROMPT }
+
+module.exports = { SEARCH_INVENTORY_PROMPT, ADD_INVENTORY_PROMPT, INTENT_CLASSIFIER_PROMPT, EXTRACT_SALE_PROMPT }
 
 
 

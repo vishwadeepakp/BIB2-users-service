@@ -1,7 +1,7 @@
 const InventoryLog = require('../models/InventoryLog');
 const database = require("../config/database");
 const { stockUpdate } = require("../utils/kafka");
-const { INTENT_CLASSIFIER_PROMPT, ADD_INVENTORY_PROMPT, SEARCH_INVENTORY_PROMPT } = require("../promt");
+const { INTENT_CLASSIFIER_PROMPT, ADD_INVENTORY_PROMPT, SEARCH_INVENTORY_PROMPT, EXTRACT_SALE_PROMPT } = require("../promt");
 const { llmModel } = require("../utils/ai");
 
 // Connection instance लें
@@ -40,10 +40,22 @@ async function parseVoiceText(data, userID) {
       console.log("searchInventoryJSON", searchInventoryJSON);
       const SearchData = await getSearchData(searchInventoryJSON.generated_query, userID);
       return { data: SearchData, voice_response: searchInventoryJSON.voice_response, action_type: "SEARCH_PRODUCT" }
-    } else if (intent.intent == 'XXXXX') {
-      const searchInventoryJSON = await llmModel(text, SEARCH_INVENTORY_PROMPT(text, userID));
-      const SearchData = await getSearchData(searchInventoryJSON.generated_query, userID);
-      return { data: SearchData, voice_response: searchInventoryJSON.voice_response, action_type: "SEARCH_PRODUCT" }
+    } else if (intent.intent == 'ADD_SALE') {
+      const JSON = await llmModel(text, EXTRACT_SALE_PROMPT(text, userID));
+      console.log("EXTRACT_SALE_PROMPT JSON", JSON);
+      const itemData = JSON.items;
+      const itemsAvailabilityResponse = await Promise.all(itemData.map(async (item) => {
+        const isItemAvailableResponse = await axios.get(`/api/checkItemAvailability?userId=${userID}&itemName=${item.name}&quantity=${item.quantity}&unit=${item.unit}`);
+        return isItemAvailableResponse.data;
+      }));
+
+      const unableProducts = itemsAvailabilityResponse.filter(item => !item.isAvailable).map(item => item.name);
+      const voiceResponse = unableProducts.length > 0 ? `The following products are not available in stock: ${unableProducts.join(', ')}. Please try again.` : `All the products are available in stock.`;
+
+      return {
+        data: itemsAvailabilityResponse,
+        voice_response: voiceResponse
+      };
     }
 
     // if (resData.action_type == "SEARCH_PRODUCT") {
@@ -80,6 +92,7 @@ async function saveInventory(product_details, userID) {
       const logsToInsert = product_details.map(item => ({
         userId: userID,
         name: item.name,
+        brand: item.brand || null,
         category: item.category,
         type: 'IN', // Default Stock IN
         quantity: item.quantity,
@@ -90,7 +103,7 @@ async function saveInventory(product_details, userID) {
         sellingPrice: item.selling_price,
         buyingPrice: item.buying_price,
         supplierName: item.supplier_name,
-        expiryDate: item.expiry_date,
+        expiryDate: item.expiry_date || null,
         tags: item.tags || [],
         voiceResponse: "voice_response",
       }));
