@@ -10,3 +10,14 @@ exports.getSalesTable = async (req, res, next) => {
         next(err);
     }
 };
+
+exports.saveSalesData = async (req, res, next) => {
+    try {
+        const userID = req.headers['x-user-id'] || req.headers['user-id'] || req.headers['userid'];
+        const data = req.body;
+        const result = await service.saveSalesData(userID, data);
+        res.status(201).json({ data: result, status: true });
+    } catch (err) {
+        next(err);
+    }
+};

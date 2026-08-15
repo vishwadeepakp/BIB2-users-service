@@ -1,5 +1,7 @@
 const { Op } = require('sequelize');
 const InventoryLog = require('../models/InventoryLog');
+const Sale = require('../models/Sale');
+const SaleItem = require('../models/SaleItem');
 
 function parseTableQuery(query = {}) {
   const page = Number.parseInt(query.page, 10);
@@ -35,34 +37,28 @@ async function getSalesTableData(userID, query = {}) {
     };
   }
 
-  const where = { userId: userID };
+  const saleIds = (await Sale.findAll({ where: { userId: userID }, attributes: ['id'] })).map(sale => sale.id);
 
-  if (search) {
-    const escapeLikePattern = (value) => value.replace(/[%_\\]/g, '\\$&');
-    const safeSearch = escapeLikePattern(search);
-    const searchPattern = `%${safeSearch}%`;
-    const isPostgres = InventoryLog.sequelize?.getDialect?.() === 'postgres';
-    const likeOperator = isPostgres ? Op.iLike : Op.like;
-    const searchConditions = [
-      { name: { [likeOperator]: searchPattern } },
-      { category: { [likeOperator]: searchPattern } },
-    ];
+  const where = {
+    sale_id: { [Op.in]: saleIds },
+  };
 
-    if (isPostgres) {
-      searchConditions.push({ tags: { [Op.contains]: [search] } });
-    } else {
-      searchConditions.push({ tags: { [likeOperator]: searchPattern } });
-    }
+  // if (search) {
+  //   const safeSearch = search.toLowerCase();
+  //   const searchConditions = [
+  //     { invoice_number: { [Op.like]: `%${safeSearch}%` } },
+  //     { customer_name: { [Op.like]: `%${safeSearch}%` } },
+  //   ];
 
-    where[Op.or] = searchConditions;
-  }
+  //   where[Op.and] = searchConditions;
+  // }
 
-  const { rows, count } = await InventoryLog.findAndCountAll({
+  const { rows, count } = await SaleItem.findAndCountAll({
     where,
     order: [['createdAt', 'DESC']],
     limit,
     offset,
-    attributes: ['id', 'name', 'category', 'type', 'quantity', 'unit', 'packageCount', 'packageUnit', 'quantityPerPackage', 'sellingPrice', 'buyingPrice', 'expiryDate', 'tags', 'voiceResponse', 'createdAt'],
+    attributes: Object.keys(SaleItem.rawAttributes),
   });
 
   console.log("rows", rows)
@@ -80,4 +76,54 @@ async function getSalesTableData(userID, query = {}) {
   };
 }
 
-module.exports = { parseTableQuery, getSalesTableData };
+async function saveSalesData(userId, payload) {
+  try {
+    console.log("payload", payload)
+
+    // 1. Master Sale Data सेव करें
+    // (invoice_number अपने आप मॉडल के beforeCreate हुक से जनरेट होकर लग जाएगा)
+    const createdSale = await Sale.create({
+      userId: userId,
+      customer_name: payload.customer_name,
+      customer_phone: payload.customer_phone || null,
+      customer_gstin: payload.customer_gstin || null,
+      payment_mode: payload.payment_mode,
+      status: payload.status,
+      notes: payload.notes || null,
+      subtotal: payload.summary.subtotal,
+      overall_discount_type: payload.summary.overall_discount.type,
+      overall_discount_value: payload.summary.overall_discount.value,
+      overall_discount_amount: payload.summary.overall_discount.amount,
+      grand_total: payload.summary.grand_total,
+      sale_date: payload.date || new Date(),
+    });
+
+    // 2. Items Array में नई बनी Master Sale की ID अटैच करें
+    const formattedItems = payload.items.map(item => ({
+      sale_id: createdSale.id, // Parent Sale की ID
+      product_name: item.product_name,
+      brand_name: item.brand_name || null,
+      hsn_code: item.hsn_code || null,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      discount_value: item.discount_value,
+      discount_type: item.discount_type,
+      total: item.total,
+    }));
+
+    // 3. Child SaleItems Table में Bulk Data सेव करें
+    const createdItems = await SaleItem.bulkCreate(formattedItems);
+
+    // 4. Response भेजें
+    return {
+      sale: createdSale,
+      items: createdItems,
+    }
+
+  } catch (error) {
+    console.error('Error saving sale:', error);
+    throw new Error("Error in saving sale :: " + error?.message || 'Failed to save sale');
+  }
+}
+
+module.exports = { parseTableQuery, getSalesTableData, saveSalesData };

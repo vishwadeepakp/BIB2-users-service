@@ -29,7 +29,7 @@ if (process.env.NODE_ENV !== 'production') {
   (async () => {
     try {
       await database.connect();
-      // await database.sync();
+      // await database.sync({alter: true})
       app.listen(PORT, () => {
         console.log(`🚀 User Service running locally on port ${PORT}`);
       });
