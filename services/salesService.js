@@ -37,34 +37,39 @@ async function getSalesTableData(userID, query = {}) {
     };
   }
 
-  const saleIds = (await Sale.findAll({ where: { userId: userID }, attributes: ['id'] })).map(sale => sale.id);
+  const where = { userId: userID };
 
-  const where = {
-    sale_id: { [Op.in]: saleIds },
-  };
+  if (search) {
+    const safeSearch = search.toLowerCase();
+    const searchConditions = [
+      { invoice_number: { [Op.like]: `%${safeSearch}%` } },
+      { customer_name: { [Op.like]: `%${safeSearch}%` } },
+    ];
 
-  // if (search) {
-  //   const safeSearch = search.toLowerCase();
-  //   const searchConditions = [
-  //     { invoice_number: { [Op.like]: `%${safeSearch}%` } },
-  //     { customer_name: { [Op.like]: `%${safeSearch}%` } },
-  //   ];
+    where[Op.and] = searchConditions;
+  }
 
-  //   where[Op.and] = searchConditions;
-  // }
-
-  const { rows, count } = await SaleItem.findAndCountAll({
+  const { rows, count } = await Sale.findAndCountAll({
     where,
     order: [['createdAt', 'DESC']],
     limit,
     offset,
-    attributes: Object.keys(SaleItem.rawAttributes),
+    attributes: Object.keys(Sale.rawAttributes),
+    include: [{
+      model: SaleItem,
+      as: 'items', // Alias
+      attributes: Object.keys(SaleItem.rawAttributes),
+    }],
   });
-
-  console.log("rows", rows)
+  const dbData = rows.map(sale => ({
+    ...sale.toJSON(),
+    items: sale.items ? sale.items.map(item => item.toJSON()) : undefined,
+  })
+  )
+  console.log("dbData", dbData)
 
   return {
-    data: rows,
+    data: dbData,
     pagination: {
       page,
       limit,
