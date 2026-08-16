@@ -55,15 +55,9 @@ async function getSalesTableData(userID, query = {}) {
     limit,
     offset,
     attributes: Object.keys(Sale.rawAttributes),
-    include: [{
-      model: SaleItem,
-      as: 'items', // Alias
-      attributes: Object.keys(SaleItem.rawAttributes),
-    }],
   });
   const dbData = rows.map(sale => ({
     ...sale.toJSON(),
-    items: sale.items ? sale.items.map(item => item.toJSON()) : undefined,
   })
   )
   console.log("dbData", dbData)
@@ -79,6 +73,16 @@ async function getSalesTableData(userID, query = {}) {
       hasPrevPage: page > 1,
     },
   };
+}
+
+async function getSaleItemData(sale_id) {
+  const where = { sale_id };
+  const items = await SaleItem.findAll({
+    where,
+    attributes: Object.keys(SaleItem.rawAttributes),
+  });
+
+  return items.map(item => item.toJSON());
 }
 
 async function saveSalesData(userId, payload) {
@@ -131,4 +135,4 @@ async function saveSalesData(userId, payload) {
   }
 }
 
-module.exports = { parseTableQuery, getSalesTableData, saveSalesData };
+module.exports = { parseTableQuery, getSalesTableData, saveSalesData, getSaleItemData };

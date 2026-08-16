@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const userRoutes = require("./routes/userRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 const salesRoutes = require("./routes/salesRoutes");
 const cookieParser = require('cookie-parser');
 
@@ -19,6 +20,7 @@ app.use("/users", userRoutes);
 app.use("/ai", aiRoutes);
 app.use("/ai/inventory", inventoryRoutes);
 app.use("/ai/sales", salesRoutes);
+app.use("/profile", profileRoutes);
 
 
 app.use((err, req, res, next)=>{
