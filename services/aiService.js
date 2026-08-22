@@ -2,7 +2,7 @@ const InventoryLog = require('../models/InventoryLog');
 const database = require("../config/database");
 const { stockUpdate } = require("../utils/kafka");
 const { INTENT_CLASSIFIER_PROMPT, ADD_INVENTORY_PROMPT, SEARCH_INVENTORY_PROMPT, EXTRACT_SALE_PROMPT } = require("../promt");
-const { llmModel } = require("../utils/ai");
+const { llmModel } = require("../utils/llm/ai");
 
 // Connection instance लें
 const sequelize = database.getConnection();

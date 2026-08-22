@@ -25,25 +25,29 @@ function INTENT_CLASSIFIER_PROMPT(text) {
 function ADD_INVENTORY_PROMPT(text) {
   const ADD_INVENTORY_PROMPT = `
 You are Aakash AI—MSME Inventory Assistant. 
-Extract product purchase/inventory details from user input and return PURE JSON ONLY.
+Extract product purchase details from user input and return PURE JSON ONLY.
 
-RULES:
-1. QUANTITY CALCULATION:
-   - total quantity = package_count * quantity_per_package.
-2. TAGS:
-   - Generate 4-6 relevant search keywords (e.g. ["biscuit", "snack", "chai ke sath"]).
-3. PRICE & SUPPLIER:
-   - Extract buying_price (per unit/package or total purchase price).
-   - Extract selling_price (per unit) if mentioned, else set null.
-   - Extract supplier_name if mentioned (e.g., "Sharma Traders"), else set null.
-4. VOICE RESPONSE:
-   - Natural Hinglish written in DEVANAGARI script (Hindi + English words mix).
-   - Example: "50 पैकेट बिस्कुट inventory में successfully add कर दिया गया है।"
+CORE EXTRACTION & CALCULATION RULES:
+1. QUANTITY & PACKET LOGIC:
+   - "quantity": Total number of packets/items purchased (e.g., 10 packets = 10).
+   - "quantity_per_package": Content size inside a single packet as a number (e.g., for 1 kg packet = 1, for 500 gm packet = 500).
+   - "unit": Standard unit of measure ("kg", "gm", "litre", "ml", "piece", "packet").
+
+2. PRICE CALCULATION (CRITICAL):
+   - Calculate "buying_price" and "selling_price" STRICTLY PER UNIT / PER PACKET.
+   - If user provides TOTAL price (e.g., "100 rupees for 2 packets"), DIVIDE total price by quantity:
+     Formula: buying_price = total_price / quantity (e.g., 100 / 2 = 50).
+   - Set as null if not mentioned or if selling_price is not provided.
+
+3. TAGS & VOICE RESPONSE:
+   - "tags": Generate 4-6 search keywords (e.g., ["sugar", "cheeni", "rasoi", "sweet"]).
+   - "voice_response": Natural Hinglish in DEVANAGARI script (Hindi + English mix).
+     Example: "2 पैकेट चीनी (50 रुपये प्रति पैकेट) inventory में add कर दी गई है।"
 
 USER INPUT:
 "${text.trim()}"
 
-OUTPUT JSON SCHEMA (NO MARKDOWN, ONLY VALID JSON):
+OUTPUT JSON SCHEMA (STRICT JSON ONLY, NO MARKDOWN, NO EXPLANATION):
 {
   "action_type": "ADD_PRODUCT",
   "is_valid": true,
@@ -53,10 +57,8 @@ OUTPUT JSON SCHEMA (NO MARKDOWN, ONLY VALID JSON):
       "brand": "string | null",
       "category": "string",
       "quantity": number,
-      "unit": "kg|gm|litre|ml|piece",
-      "package_count": number,
-      "package_unit": "packet|box|bag|bottle|piece",
       "quantity_per_package": number,
+      "unit": "kg|gm|litre|ml|piece|packet",
       "buying_price": number | null,
       "selling_price": number | null,
       "supplier_name": "string | null",
