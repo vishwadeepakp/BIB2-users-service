@@ -6,5 +6,6 @@ const router = express.Router();
 router.get('/table', controller.getSalesTable);
 router.post('/save-sales-data', controller.saveSalesData);
 router.get('/items', controller.getItems);
+router.get('/analytics', controller.getAnalytics);
 
 module.exports = router;

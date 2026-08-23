@@ -1,8 +1,8 @@
-const { Op } = require('sequelize');
 const InventoryLog = require('../models/InventoryLog');
 const Sale = require('../models/Sale');
 const SaleItem = require('../models/SaleItem');
 const { stockUpdate } = require("../utils/kafka");
+const { Op, fn, col } = require('sequelize');
 
 function parseTableQuery(query = {}) {
   const page = Number.parseInt(query.page, 10);
@@ -142,4 +142,65 @@ async function saveSalesData(userId, payload) {
   }
 }
 
-module.exports = { parseTableQuery, getSalesTableData, saveSalesData, getSaleItemData };
+async function getAnalytics(userId, startDate, endDate) {
+  try {
+    // Base Where Clause
+    const whereClause = {
+      userId,
+      status: {
+        [Op.ne]: 'cancelled', // Cancelled sales ko include nahi karenge
+      },
+    };
+
+    // Date Range Filter (sale_date column par)
+    if (startDate && endDate) {
+      whereClause.sale_date = {
+        [Op.gte]: new Date(`${startDate}T00:00:00.000Z`),
+        [Op.lte]: new Date(`${endDate}T23:59:59.999Z`),
+      };
+    } else if (startDate) {
+      whereClause.sale_date = {
+        [Op.gte]: new Date(`${startDate}T00:00:00.000Z`),
+      };
+    } else if (endDate) {
+      whereClause.sale_date = {
+        [Op.lte]: new Date(`${endDate}T23:59:59.999Z`),
+      };
+    }
+
+    // 1. Calculate Total Revenue (Sabhi active sales ka grand_total)
+    const totalRevenueResult = await Sale.findOne({
+      attributes: [
+        [fn('COALESCE', fn('SUM', col('grand_total')), 0), 'totalAmount'],
+      ],
+      where: whereClause,
+      raw: true,
+    });
+
+    // 2. Calculate Amount Received
+    // Only completed status aur non-credit payment mode wale transactions
+    const paidAmountResult = await Sale.findOne({
+      attributes: [
+        [fn('COALESCE', fn('SUM', col('grand_total')), 0), 'paidAmount'],
+      ],
+      where: {
+        ...whereClause,
+        status: 'completed',
+        payment_mode: {
+          [Op.ne]: 'credit', // Credit / udhaar transactions ko received se exclude karte hain
+        },
+      },
+      raw: true,
+    });
+
+    return {
+      totalAmount: parseFloat(totalRevenueResult.totalAmount || 0),
+      paidAmount: parseFloat(paidAmountResult.paidAmount || 0),
+    };
+  } catch (error) {
+    console.error('Error in getSalesAnalyticsService:', error);
+    throw error;
+  }
+};
+
+module.exports = { parseTableQuery, getSalesTableData, saveSalesData, getSaleItemData, getAnalytics };

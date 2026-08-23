@@ -32,3 +32,14 @@ exports.getItems = async (req, res, next) => {
         next(err);
     }
 };
+
+exports.getAnalytics = async (req, res, next) => {
+    try {
+        const userID = req.headers['x-user-id'] || req.headers['user-id'] || req.headers['userid'];
+        const { startDate, endDate } = req.query;
+        const result = await service.getAnalytics(userID, startDate, endDate);
+        res.status(201).json({ data: result, status: true });
+    } catch (err) {
+        next(err);
+    }
+};
