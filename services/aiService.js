@@ -1,7 +1,7 @@
 const InventoryLog = require('../models/InventoryLog');
 const database = require("../config/database");
 const { stockUpdate } = require("../utils/kafka");
-const { INTENT_CLASSIFIER_PROMPT, ADD_INVENTORY_PROMPT, SEARCH_INVENTORY_PROMPT, EXTRACT_SALE_PROMPT } = require("../promt");
+const { INTENT_CLASSIFIER_PROMPT, ADD_INVENTORY_PROMPT, SEARCH_INVENTORY_PROMPT, EXTRACT_SALE_PROMPT, GST_DETAILS_PROMPT } = require("../promt");
 const { llmModel } = require("../utils/llm/ai");
 
 // Connection instance लें
@@ -130,4 +130,27 @@ async function getSearchData(query, userID) {
   return dbData
 }
 
-module.exports = { parseVoiceText, saveInventory };
+
+async function getGstDetails({ name }) {
+  try {
+    if (!name || typeof name !== "string" || name.trim() === "") {
+      return {
+        gst_details: null,
+        is_valid: false,
+        voice_response: "क्षमा करें, मुझे आपकी आवाज़ या पाठ स्पष्ट नहीं मिला। कृपया थोड़ी देर बाद प्रयास करें।"
+      };
+    }
+
+    const res = await llmModel(name, GST_DETAILS_PROMPT(name));
+    return res;
+  } catch (error) {
+    console.error("❌ Error fetching GST details:", error.message || error);
+    return {
+      gst_details: null,
+      is_valid: false,
+      voice_response: "सर्वर में कुछ समस्या आई है, कृपया थोड़ी देर बाद प्रयास करें।"
+    };
+  }
+}
+
+module.exports = { parseVoiceText, saveInventory, getGstDetails };

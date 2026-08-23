@@ -18,7 +18,11 @@ const InventoryLog = sequelize.define('InventoryLog', {
   // AI Extracted Core Fields
   name: {
     type: DataTypes.STRING(255),
-    allowNull: false, // Product Name (e.g., "Chini", "Parle-G")
+    allowNull: false,
+  },
+  hsn: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
   },
   category: {
     type: DataTypes.STRING(100),

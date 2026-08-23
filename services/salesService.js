@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const InventoryLog = require('../models/InventoryLog');
 const Sale = require('../models/Sale');
 const SaleItem = require('../models/SaleItem');
+const { stockUpdate } = require("../utils/kafka");
 
 function parseTableQuery(query = {}) {
   const page = Number.parseInt(query.page, 10);
@@ -75,7 +76,9 @@ async function getSalesTableData(userID, query = {}) {
   };
 }
 
+
 async function getSaleItemData(sale_id) {
+  console.log("sale_id", sale_id)
   const where = { sale_id };
   const items = await SaleItem.findAll({
     where,
@@ -113,6 +116,7 @@ async function saveSalesData(userId, payload) {
       product_name: item.product_name,
       brand_name: item.brand_name || null,
       hsn_code: item.hsn_code || null,
+      gst_rate: item.gst_rate || null,
       quantity: item.quantity,
       unit_price: item.unit_price,
       discount_value: item.discount_value,
@@ -122,6 +126,9 @@ async function saveSalesData(userId, payload) {
 
     // 3. Child SaleItems Table में Bulk Data सेव करें
     const createdItems = await SaleItem.bulkCreate(formattedItems);
+    if (payload?.items) {
+      await stockUpdate({ userId: userId, products: payload.items, type: 'OUT' }); // Kafka को स्टॉक अपडेट इवेंट भेजो
+    }
 
     // 4. Response भेजें
     return {

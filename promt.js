@@ -78,7 +78,7 @@ function SEARCH_INVENTORY_PROMPT(text, userID) {
   const currentDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD (e.g. 2026-08-13)
   const currentMonthYear = today.toLocaleString('default', { month: 'long', year: 'numeric' }); // e.g. August 2026
 
- return `
+  return `
 You are Aakash AI—MSME Inventory Assistant.
 Convert the user's natural language request into a valid MySQL SELECT query for the "inventory_logs" table, and provide a polite Hindi/Hinglish voice response.
 
@@ -188,9 +188,28 @@ function EXTRACT_SALE_PROMPT(text) {
   return extractSalePrompt;
 }
 
+function GST_DETAILS_PROMPT(text) {
+  const gstDetailsPrompt = `You are an Indian GST classification engine.
+
+TASK:
+For the given product name, identify the correct Indian HSN code and total GST rate.
+
+INSTRUCTIONS:
+1. Handle brand names, Hindi/Hinglish terms, regional slang, or typos accurately.
+2. Return ONLY a raw JSON object with no extra text or markdown formatting (no json).
+
+OUTPUT SCHEMA:
+{
+  "hsn_code": "4 or 6 digit string",
+  "gst_rate": Number (0, 5, 12, 18, or 28)
+}`
+
+  return gstDetailsPrompt
+}
 
 
-module.exports = { SEARCH_INVENTORY_PROMPT, ADD_INVENTORY_PROMPT, INTENT_CLASSIFIER_PROMPT, EXTRACT_SALE_PROMPT }
+
+module.exports = { SEARCH_INVENTORY_PROMPT, ADD_INVENTORY_PROMPT, INTENT_CLASSIFIER_PROMPT, EXTRACT_SALE_PROMPT, GST_DETAILS_PROMPT }
 
 
 

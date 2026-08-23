@@ -24,3 +24,16 @@ exports.saveInventoryData = async (req, res, next) => {
         next(err)
     }
 };
+
+exports.getGstDetails = async (req, res, next) => {
+    try {
+        const { name } = req.body;
+        console.log("name", name);
+        const gstDetails = await service.getGstDetails({ name });
+
+        res.status(200).json({ data: gstDetails, status: true });
+    } catch (err) {
+        console.log("getGstDetails err", err.message);
+        next(err)
+    }
+};

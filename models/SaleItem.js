@@ -33,6 +33,10 @@ const SaleItem = sequelize.define('SaleItem', {
     type: DataTypes.STRING(20),
     allowNull: true,
   },
+   gst_rate: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false,

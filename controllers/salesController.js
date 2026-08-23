@@ -24,9 +24,9 @@ exports.saveSalesData = async (req, res, next) => {
 
 exports.getItems = async (req, res, next) => {
     try {
-        const userID = req.headers['x-user-id'] || req.headers['user-id'] || req.headers['userid'];
-        console.log("userID", userID);
-        const result = await service.getSaleItemData(userID);
+        const sale_id = req.query.saleId;
+        console.log("sale_id", sale_id);
+        const result = await service.getSaleItemData(sale_id);
         res.status(200).json({ data: result, status: true });
     } catch (err) {
         next(err);
