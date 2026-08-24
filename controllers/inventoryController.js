@@ -11,3 +11,16 @@ exports.getInventoryTable = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.saveOcrData = async (req, res, next) => {
+  const userID = req.headers['x-user-id'] || req.headers['user-id'] || req.headers['userid'];
+  console.log("userID", userID);
+  const data = req.body;
+
+  try {
+    const result = await service.saveOcrData(userID, data);
+    res.status(201).json({ data: result, status: true });
+  } catch (err) {
+    next(err);
+  }
+};

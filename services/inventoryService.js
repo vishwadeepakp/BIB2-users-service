@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const InventoryLog = require('../models/InventoryLog');
+const { ocrKafka } = require('../utils/ocrKafka');
 
 function parseTableQuery(query = {}) {
   const page = Number.parseInt(query.page, 10);
@@ -80,4 +81,18 @@ async function getInventoryTableData(userID, query = {}) {
   };
 }
 
-module.exports = { parseTableQuery, getInventoryTableData };
+async function saveOcrData(userID, data) {
+  if (!data.publicUrl) {
+    throw new Error('publicUrl is required');
+  }
+
+  try {
+    const result = await ocrKafka({userID, publicUrl: data.publicUrl});
+    return result;
+  } catch (err) {
+    console.error('Error saving OCR data:', err);
+    throw new Error('Failed to save OCR data');
+  }
+}
+
+module.exports = { parseTableQuery, getInventoryTableData, saveOcrData };
