@@ -51,7 +51,7 @@ exports.verifyOtp = async (req, res, next) => {
     });
 
 
-    res.status(200).json({ data: { id: data.user.id, mobile: data.user.mobile }, status: true });
+    res.status(200).json({ data: { id: data.user.id, mobile: data.user.mobile, accessToken: data.user.accessToken }, status: true });
   } catch (err) {
     next(err)
   }
